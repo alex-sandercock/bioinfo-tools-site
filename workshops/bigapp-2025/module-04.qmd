@@ -109,11 +109,16 @@ You usually need **at least 200-500 individuals** in your training set for reaso
 
 ---
 
-## Running Genomic Prediction in BIGapp
+## Running Genomic Selection in BIGapp
+
+BIGapp provides **two distinct features** for genomic selection, each serving a different purpose:
+
+1. **Predictive Ability** — Estimate how well you can predict your trait (using cross-validation)
+2. **Genomic Prediction** — Generate actual EBVs and predicted phenotypes
 
 ### What You Need
 
-1. **Filtered genotype data** (from Module 1)
+1. **Filtered genotype data** (from Module 1) — VCF file with SNPs
 2. **Phenotype data** — A file with sample IDs and trait values
 
 Phenotype file format:
@@ -126,48 +131,161 @@ Plant_003,132.1,78.5,38
 ...
 ```
 
-### Demo: Running Prediction
-
-![Genomic prediction in BIGapp](../../images/bigapp-gs.gif){fig-alt="Animated GIF showing the genomic prediction workflow" width="100%"}
-
-**Steps:**
-
-1. Go to **"Genomic Prediction"** in the sidebar
-2. Upload your VCF file (`atlantic_giant_pumpkin_diversity.vcf.gz`)
-3. Upload your phenotype file (`atlantic_giant_pumpkin_diversity_phenotypes.csv`)
-4. Select the trait to predict
-5. Click **Run Prediction**
-
-### Understanding the Output
-
-BIGapp provides:
-
-1. **Cross-validation accuracy** — Estimated prediction accuracy
-2. **Predicted breeding values** — For all individuals
-3. **Plots** — Predicted vs. observed values
+::: {.callout-tip}
+## Which feature should I use?
+- Use **Predictive Ability** first to assess if genomic selection will work for your trait
+- Use **Genomic Prediction** to generate actual breeding values for selection decisions
+:::
 
 ---
 
-## Cross-Validation: Testing Your Model
+## Feature 1: Predictive Ability
 
-Since we don't know the "true" breeding values, we estimate accuracy using **cross-validation**:
+This feature estimates **how accurately** you can predict your trait using genomic data. It uses **k-fold cross-validation** to test prediction accuracy.
+
+### How It Works
+
+The analysis:
+
+1. **Splits** your data into k folds (typically 5)
+2. **Trains** on k-1 folds, predicts the remaining fold
+3. **Repeats** for all folds
+4. **Calculates** Pearson correlation between predicted and observed values
+5. **Repeats** the entire process for multiple iterations
+
+This gives you a robust estimate of prediction accuracy **before** you invest in using genomic selection.
+
+### Demo: Running Predictive Ability
+
+![Genomic prediction in BIGapp](../../images/bigapp-gs.gif){fig-alt="Animated GIF showing the genomic prediction workflow" width="100%"}
+
+[Detailed step-by-step guide available here](https://scribehow.com/viewer/Predictive_Ability__EdZnO6rZQy2NOR3D9yS33Q)
+
+**Steps:**
+
+1. Navigate to **"Predictive Ability"** in the left menu
+2. Upload your VCF file (`atlantic_giant_pumpkin_diversity.vcf.gz`)
+3. Upload your trait file (`atlantic_giant_pumpkin_diversity_phenotypes.csv`)
+4. Select your species **ploidy level**
+5. Configure **number of iterations** (more iterations = more robust estimate)
+6. Select **one or more traits** to analyze
+7. (Optional) Configure **fixed effects** in Advanced Settings
+8. (Optional) Choose **analysis method** and **relationship matrix type**:
+   - **G-matrix**: Uses only genomic relationships
+   - **H-matrix**: Combines genomic and pedigree data (requires pedigree file)
+9. Click **Run Analysis**
+
+### Understanding the Output
+
+The results include:
+
+- **Violin Plot** — Distribution of prediction accuracies across iterations
+- **Box Plot** — Summary statistics of accuracy
+- **P.A. Table** — Detailed accuracy values for each iteration
+- **Summary statistics** — Number of SNPs, number of samples with phenotypes
+
+::: {.callout-note}
+## Interpreting Predictive Ability
+The accuracy values range from 0 to 1. Higher values indicate better prediction:
+- **0.8+**: Excellent — Genomic selection will be very effective
+- **0.6-0.8**: Good — Genomic selection is worthwhile
+- **0.4-0.6**: Moderate — Some benefit, but may need larger training set
+- **<0.4**: Low — Consider improving training set or using different markers
+:::
+
+---
+
+## Feature 2: Genomic Prediction
+
+This feature generates **actual predictions** — both Estimated Breeding Values (EBVs) and predicted phenotypes — for your individuals.
+
+### Two Ways to Use It
+
+**Option 1: Single VCF File**
+
+Submit one VCF file containing all individuals. The tool will:
+
+- Train a model on individuals **with** phenotype data
+- Generate predictions for **all** individuals (including those without phenotypes)
+- Indicate in output tables which samples had trait data
+
+**Option 2: Separate Training and Prediction Sets (Advanced)**
+
+Use Advanced Options to upload two VCF files:
+
+- **Training VCF**: Individuals with phenotype data
+- **Prediction VCF**: New individuals to predict (no phenotypes needed)
+
+This is useful when you have a separate validation population or new breeding lines.
+
+### Steps to Run
+
+[Detailed step-by-step guide available here](https://scribehow.com/viewer/Genomic_Prediction__O_87cdUYQw-3xMKpFUrfgg)
+
+1. Navigate to **"Genomic Prediction"** in the left menu
+2. Upload your VCF file
+3. Upload your trait file
+4. Select your species **ploidy level**
+5. Choose **one or more traits** to predict
+6. (Optional) Configure **fixed effects**
+7. (Optional) For two-file approach: Upload second prediction VCF in Advanced Options
+8. Click **Run Analysis**, then **Proceed**
+9. Wait ~2 minutes for results
+
+### Understanding the Output
+
+The results include two key tables:
+
+**1. Predicted Phenotype Table**
+
+- Predicted trait values for each individual
+- Indicates which samples had original trait data
+- Shows model's predicted values vs. observed (where available)
+
+**2. EBV Table**
+
+- Estimated Breeding Values for each individual
+- Relative genetic merit for the trait
+- Use for **ranking** and **selecting** parents
+
+Both tables are downloadable for use in breeding decisions.
+
+::: {.callout-tip}
+## Using the Results
+- **Rank individuals** by EBV to identify top performers
+- **Select parents** with highest EBVs for crosses
+- **Make early selection** on seedlings before phenotyping
+- **Prioritize resources** by phenotyping only high-EBV individuals
+:::
+
+---
+
+## Understanding Cross-Validation
+
+The **Predictive Ability** feature uses **cross-validation** to estimate how well your model can predict trait values.
+
+### How Cross-Validation Works
+
+Since we don't know the "true" breeding values, we estimate accuracy using **k-fold cross-validation**:
 
 1. **Split** the training data into folds (e.g., 5 folds)
 2. **Train** on 4 folds, predict the 5th
 3. **Repeat** for all folds
 4. **Calculate** correlation between predicted and observed
+5. **Repeat** the entire process multiple times (iterations)
 
 ![Cross-validation diagram](../../images/cross-validation.png){fig-alt="Diagram showing 5-fold cross-validation process" width="80%"}
 
 *Figure: [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:K-fold_cross_validation_EN.svg), CC BY-SA 4.0*
 
-BIGapp does this automatically and reports the average accuracy.
+The Predictive Ability feature does this automatically and reports the distribution of accuracy across iterations.
 
 ### Try It Yourself
 
 1. Load the pumpkin data with phenotypes
-2. Run genomic prediction for **Fruit_Weight_lbs**
-3. What accuracy do you get?
+2. Go to the **Predictive Ability** tab
+3. Run the analysis for **Fruit_Weight_lbs**
+4. What accuracy do you get?
 
 ::: {.callout-tip collapse="true"}
 ## Answer
@@ -176,11 +294,11 @@ With the pumpkin dataset, you should see cross-validation accuracy around **0.5-
 
 ---
 
-## Interpreting Results
+## Interpreting Results from Genomic Prediction
 
 ### Predicted Breeding Values (GEBVs)
 
-The output includes a **Genomic Estimated Breeding Value (GEBV)** for each individual.
+The **Genomic Prediction** feature output includes a **Genomic Estimated Breeding Value (GEBV)** for each individual.
 
 ```
 Sample_ID    GEBV      Rank
@@ -246,24 +364,38 @@ Your training set should:
 
 ## Exercise
 
-Using the pumpkin data:
+Using the pumpkin data, practice using both BIGapp features:
 
-1. Load the phenotype data
-2. Run genomic prediction for **Fruit_Weight_lbs**
-3. Note the cross-validation accuracy
-4. Identify the top 10 individuals by GEBV
-5. Look at which regions these top individuals come from
+### Part 1: Assess Predictive Ability
+
+1. Navigate to the **Predictive Ability** tab
+2. Load your VCF and phenotype data
+3. Run the analysis for **Fruit_Weight_lbs**
+4. Note the cross-validation accuracy from the plots
+5. Review the violin plot and box plot distributions
+
+### Part 2: Generate Predictions
+
+1. Navigate to the **Genomic Prediction** tab
+2. Load the same VCF and phenotype data
+3. Run the analysis for **Fruit_Weight_lbs**
+4. Review the Predicted Phenotype Table and EBV Table
+5. Identify the top 10 individuals by EBV
+6. Look at which regions these top individuals come from
 
 ::: {.callout-tip collapse="true"}
 ## Answer
-You should see accuracy around 0.5-0.7. The top-ranked individuals by GEBV will likely be from the **Eastern** region, which has the highest average fruit weights in the dataset. This makes biological sense — Eastern breeding programs have historically focused on giant pumpkin competitions!
+**Predictive Ability**: You should see accuracy around 0.5-0.7, indicating moderate-to-good prediction potential.
+
+**Genomic Prediction**: The top-ranked individuals by EBV will likely be from the **Eastern** region, which has the highest average fruit weights in the dataset. This makes biological sense — Eastern breeding programs have historically focused on giant pumpkin competitions!
 :::
 
 **Discussion questions:**
 
-- Would you use GS for fruit weight in your program?
+- Based on the predictive ability results, would you use GS for fruit weight in your program?
 - What accuracy would you need to make GS worthwhile?
 - How could you improve accuracy?
+- How would you use the EBV rankings in practice?
 
 ---
 
@@ -271,9 +403,13 @@ You should see accuracy around 0.5-0.7. The top-ranked individuals by GEBV will 
 
 ✅ Genomic selection predicts breeding values from markers
 
-✅ Requires a training set with genotypes AND phenotypes
+✅ BIGapp has **two features**: Predictive Ability (assess accuracy) and Genomic Prediction (generate EBVs)
 
-✅ Cross-validation estimates prediction accuracy
+✅ Use **Predictive Ability** first to determine if GS will work for your trait
+
+✅ Use **Genomic Prediction** to generate actual breeding values for selection
+
+✅ Cross-validation estimates prediction accuracy before you invest in using GS
 
 ✅ Even moderate accuracy enables selection among many candidates
 
